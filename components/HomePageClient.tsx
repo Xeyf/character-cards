@@ -243,22 +243,42 @@ export default function HomePageClient({ donationUrl }: Props) {
                 Export PNG
               </button>
 
-              {donationUrl ? (
+              <div className="ml-auto inline-flex items-center gap-3">
                 <a
-                  href={donationUrl}
+                  href="https://github.com/Xeyf/character-cards"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-auto inline-flex"
-                  title="Donate"
+                  className="inline-flex items-center text-neutral-200/80 hover:text-neutral-100"
+                  aria-label="View source on GitHub"
+                  title="GitHub"
                 >
-                  <img
-                    src="/assets/skyrim/donate_button.png"
-                    alt="Donate"
-                    className="h-20 w-auto"
-                    draggable={false}
-                  />
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-8 w-8"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 .5C5.73.5.75 5.63.75 12c0 5.11 3.29 9.44 7.86 10.97.58.11.79-.26.79-.57v-2.1c-3.2.71-3.87-1.39-3.87-1.39-.52-1.37-1.27-1.74-1.27-1.74-1.04-.73.08-.72.08-.72 1.15.08 1.76 1.2 1.76 1.2 1.02 1.79 2.67 1.27 3.32.97.1-.76.4-1.27.72-1.56-2.55-.3-5.23-1.31-5.23-5.84 0-1.29.45-2.35 1.19-3.17-.12-.3-.52-1.52.12-3.17 0 0 .97-.32 3.18 1.21a10.7 10.7 0 0 1 2.9-.4c.99 0 1.98.14 2.9.4 2.2-1.53 3.18-1.21 3.18-1.21.64 1.65.24 2.87.12 3.17.74.82 1.19 1.88 1.19 3.17 0 4.54-2.69 5.54-5.25 5.83.41.37.78 1.1.78 2.22v3.3c0 .32.21.69.8.57A11.27 11.27 0 0 0 23.25 12C23.25 5.63 18.27.5 12 .5z" />
+                  </svg>
                 </a>
-              ) : null}
+
+                {donationUrl ? (
+                  <a
+                    href={donationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex"
+                    title="Donate"
+                  >
+                    <img
+                      src="/assets/skyrim/donate_button.png"
+                      alt="Donate"
+                      className="h-20 w-auto"
+                      draggable={false}
+                    />
+                  </a>
+                ) : null}
+              </div>
             </div>
 
             {err && <div className="mt-4 text-sm text-red-300">Error: {err}</div>}
