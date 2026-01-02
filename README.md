@@ -198,7 +198,7 @@ To keep layout stable:
 * Keep schemas strict:
 
   * `additionalProperties: false`
-  * enumerations for IDs (archetypes, rarity, template_style)
+  * enumerations for IDs (archetypes)
 * Keep UI components:
 
   * Pure: take `sheet` and render

@@ -2,16 +2,16 @@ import React from "react";
 
 type Sheet = {
   game: "skyrim";
-  template_style: "dossier" | "tcg";
-  rarity: "common" | "rare" | "epic" | "legendary";
   archetype_id: string;
   frame_id: string;
+  portrait_id: string;
   name: string;
   epithet: string;
   race: string;
   origin: string;
   hook: string;
   backstory: string;
+  history: string;
   build: { playstyle: string; combat_role: string; core_skills: string[] };
   stats: { might: number; guile: number; arcana: number; grit: number; presence: number };
   traits: string[];
@@ -26,21 +26,12 @@ type Sheet = {
 };
 
 export default function SkyrimDossierCard({ sheet }: { sheet: Sheet }) {
-  const portraitSrc = `/assets/skyrim/portraits/${sheet.archetype_id}.webp`;
+  const portraitSrc = `/assets/skyrim/portraits/${sheet.portrait_id}`;
   const frame = `/assets/skyrim/frames/${sheet.frame_id}`;
-
-  const rarityMeta: Record<Sheet["rarity"], { ring: string }> = {
-    common: { ring: "border-black/20" },
-    rare: { ring: "border-black/25 ring-1 ring-black/10" },
-    epic: { ring: "border-black/30 ring-1 ring-black/20" },
-    legendary: { ring: "border-black/35 ring-2 ring-black/20" }
-  };
-
-  const meta = rarityMeta[sheet.rarity];
 
   return (
     <div
-      className={`relative w-[720px] max-w-full aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl border ${meta.ring}`}
+      className="relative w-[720px] max-w-full aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl border border-black/20"
     >
       {/* frame overlay */}
       <img
@@ -69,7 +60,7 @@ export default function SkyrimDossierCard({ sheet }: { sheet: Sheet }) {
                 <div className="aspect-[4/5] w-full overflow-hidden rounded-lg border border-black/15 bg-transparent">
                   <img
                     src={portraitSrc}
-                    alt={sheet.archetype_id}
+                    alt={sheet.portrait_id}
                     className="h-full w-full object-cover"
                     draggable={false}
                     decoding="async"
@@ -93,6 +84,11 @@ export default function SkyrimDossierCard({ sheet }: { sheet: Sheet }) {
               <div className="col-span-7 min-w-0">
                 <div className="text-[11px] tracking-[0.22em] uppercase opacity-70">Background</div>
                 <div className="mt-2 text-[13px] leading-relaxed">{sheet.backstory}</div>
+
+                <div className="mt-4">
+                  <div className="text-[11px] tracking-[0.22em] uppercase opacity-70">History</div>
+                  <div className="mt-2 text-[13px] leading-relaxed">{sheet.history}</div>
+                </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-4">
                   <div>
@@ -128,8 +124,8 @@ export default function SkyrimDossierCard({ sheet }: { sheet: Sheet }) {
           </div>
 
           {/* epic final phrase (pinned to bottom, centered) */}
-          <div className="absolute bottom-50 left-0 right-0">
-            <div className="rounded-lg border border-black/10 bg-transparent px-5 py-4 italic text-[13px] text-center">
+          <div className="absolute bottom-[250px] left-0 right-0">
+            <div className="rounded-lg border border-black/10 bg-transparent px-5 py-4 italic text-[16px] text-center">
               “{sheet.quote}”
             </div>
           </div>
