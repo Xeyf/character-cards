@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="620" viewBox="0 0 980 620">
+  <defs>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000" stop-opacity="0.55"/>
+      <stop offset="0.15" stop-color="#000" stop-opacity="0.18"/>
+      <stop offset="0.85" stop-color="#000" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer border -->
+  <rect x="14" y="14" width="952" height="592" rx="20" fill="none" stroke="url(#fade)" stroke-width="10"/>
+
+  <!-- Inner hairline -->
+  <rect x="30" y="30" width="920" height="560" rx="16" fill="none" stroke="#000" stroke-opacity="0.25" stroke-width="2"/>
+
+  <!-- Corner flourishes (subtle) -->
+  <path d="M58 86c30-28 64-44 104-50" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="5" stroke-linecap="round"/>
+  <path d="M922 86c-30-28-64-44-104-50" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="5" stroke-linecap="round"/>
+  <path d="M58 534c30 28 64 44 104 50" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="5" stroke-linecap="round"/>
+  <path d="M922 534c-30 28-64 44-104 50" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Divider hint (top) -->
+  <path d="M120 120h740" stroke="#000" stroke-opacity="0.08" stroke-width="6" stroke-linecap="round"/>
+</svg>
