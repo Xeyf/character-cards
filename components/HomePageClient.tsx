@@ -142,11 +142,19 @@ export default function HomePageClient({ donationUrl }: Props) {
 
   function shuffleArt() {
     setSheet((prev: any) => {
-      const current = String(prev?.portrait_id ?? "");
-      const idx = SKYRIM_PORTRAITS.indexOf(current as any);
-      const nextIdx = idx >= 0 ? (idx + 1) % SKYRIM_PORTRAITS.length : 0;
-      const nextId = SKYRIM_PORTRAITS[nextIdx];
-      return { ...prev, portrait_id: nextId };
+      const currentPortrait = String(prev?.portrait_id ?? "");
+      const currentFrame = String(prev?.frame_id ?? "");
+
+      const portraitIdx = SKYRIM_PORTRAITS.indexOf(currentPortrait as any);
+      const nextPortraitIdx =
+        portraitIdx >= 0 ? (portraitIdx + 1) % SKYRIM_PORTRAITS.length : 0;
+      const nextPortraitId = SKYRIM_PORTRAITS[nextPortraitIdx] ?? prev?.portrait_id;
+
+      const frameIdx = SKYRIM_FRAMES.indexOf(currentFrame as any);
+      const nextFrameIdx = frameIdx >= 0 ? (frameIdx + 1) % SKYRIM_FRAMES.length : 0;
+      const nextFrameId = SKYRIM_FRAMES[nextFrameIdx] ?? prev?.frame_id;
+
+      return { ...prev, portrait_id: nextPortraitId, frame_id: nextFrameId };
     });
   }
 
@@ -179,14 +187,23 @@ export default function HomePageClient({ donationUrl }: Props) {
   }
 
   return (
-    <main className="min-h-screen p-8 bg-neutral-950 text-neutral-100">
+    <main className="min-h-screen bg-gradient-to-b from-neutral-950 via-neutral-950 to-neutral-900 text-neutral-100 px-6 py-10 sm:px-10">
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-2xl font-semibold tracking-tight">Character Cards (Skyrim v1)</h1>
-        <p className="mt-1 text-sm opacity-70">
-          Generate “dossier” sheets with OpenAI Structured Outputs and export to PNG.
-        </p>
+        <header className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neutral-200/90">
+              Skyrim v1 • Dossier template
+            </div>
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight leading-tight">
+            Forge Skyrim Character Cards — Dossier-Style RPG Sheets
+          </h1>
+          <p className="max-w-2xl text-base sm:text-lg text-neutral-200/80">
+            Write a prompt, generate structured character details, preview the sheet, then export a crisp PNG for sharing.
+          </p>
+        </header>
 
-        <div className="mt-6 grid grid-cols-1 gap-6">
+        <div className="mt-8 grid grid-cols-1 gap-6">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="text-sm opacity-80 mb-3">Preview</div>
             <div className="w-full overflow-auto">
@@ -210,7 +227,7 @@ export default function HomePageClient({ donationUrl }: Props) {
                 disabled={loading}
                 className="rounded-xl bg-white text-black px-4 py-2 text-sm font-medium disabled:opacity-50"
               >
-                {loading ? "Generating..." : "Generate with OpenAI"}
+                {loading ? "Generating..." : "Generate"}
               </button>
               <button
                 onClick={shuffleArt}
@@ -237,7 +254,7 @@ export default function HomePageClient({ donationUrl }: Props) {
                   <img
                     src="/assets/skyrim/donate_button.png"
                     alt="Donate"
-                    className="h-10 w-auto"
+                    className="h-20 w-auto"
                     draggable={false}
                   />
                 </a>
