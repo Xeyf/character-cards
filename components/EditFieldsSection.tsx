@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import type { Sheet } from "@/types/sheet";
 import { SKYRIM_FRAMES, SKYRIM_PORTRAITS } from "@/templates/skyrim";
 
 function linesToArray(text: string) {
@@ -15,8 +16,8 @@ function arrayToLines(arr: unknown) {
 }
 
 type Props = {
-  sheet: any;
-  setField: (path: string, value: any) => void;
+  sheet: Sheet;
+  setField: (path: string, value: string | string[]) => void;
   setCoreSkill: (index: number, value: string) => void;
 };
 
