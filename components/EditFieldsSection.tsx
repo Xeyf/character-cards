@@ -23,9 +23,7 @@ type Props = {
 
 export default function EditFieldsSection({ sheet, setField, setCoreSkill }: Props) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <div className="text-sm opacity-80 mb-3">Edit Fields</div>
-
+    <div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <label className="text-sm">
           <div className="mb-1 opacity-70">Name</div>
@@ -182,10 +180,6 @@ export default function EditFieldsSection({ sheet, setField, setCoreSkill }: Pro
             className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
           />
         </label>
-      </div>
-
-      <div className="mt-4 text-xs opacity-70">
-        Changes here are local-only and will reflect immediately in the preview and PNG export.
       </div>
     </div>
   );

@@ -19,6 +19,14 @@ const EditFieldsSection = dynamic(() => import("@/components/EditFieldsSection")
 const DEFAULT_PROMPT =
   "A Redguard duelist seeking redemption after betraying his mentor; dark tone; with magic";
 
+const EXAMPLE_PROMPTS = [
+  "A Nord warrior seeking glory in the face of certain death",
+  "A cunning Khajiit thief with a mysterious past",
+  "An exiled High Elf mage hunting forbidden knowledge",
+  "A Breton healer torn between duty and revenge",
+  "A Dark Elf assassin seeking redemption",
+];
+
 const DEFAULT_SHEET = {
   game: "skyrim",
   archetype_id: "sk_redguard_duelist",
@@ -68,10 +76,13 @@ export default function HomePageClient({ donationUrl }: Props) {
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [sheet, setSheet] = useState<any>(DEFAULT_SHEET);
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [hasGeneratedOnce, setHasGeneratedOnce] = useState(false);
+  const [editFieldsExpanded, setEditFieldsExpanded] = useState(false);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -115,6 +126,12 @@ export default function HomePageClient({ donationUrl }: Props) {
       }
       const data = await res.json();
       setSheet(data.sheet);
+      
+      // Mark that user has successfully generated once
+      if (!hasGeneratedOnce) {
+        setHasGeneratedOnce(true);
+        setEditFieldsExpanded(true);
+      }
     } catch (e: any) {
       setErr(e.message ?? "Error");
     } finally {
@@ -125,52 +142,59 @@ export default function HomePageClient({ donationUrl }: Props) {
   async function exportPng() {
     if (!cardRef.current) return;
 
-    // Lazy load html-to-image only when export is triggered
-    const htmlToImage = await import("html-to-image");
+    setExportLoading(true);
+    try {
+      // Lazy load html-to-image only when export is triggered
+      const htmlToImage = await import("html-to-image");
 
-    // Export the actual card element (the SkyrimDossierCard root), not the preview scaling wrapper.
-    const node = (cardRef.current.querySelector("[data-card-root]") ??
-      cardRef.current.firstElementChild ??
-      cardRef.current) as HTMLElement;
+      // Export the actual card element (the SkyrimDossierCard root), not the preview scaling wrapper.
+      const node = (cardRef.current.querySelector("[data-card-root]") ??
+        cardRef.current.firstElementChild ??
+        cardRef.current) as HTMLElement;
 
-    // Prevent cropping by ensuring fonts & images are loaded.
-    await (document as any).fonts?.ready?.catch(() => undefined);
-    const imgs = Array.from(node.querySelectorAll("img"));
-    await Promise.all(
-      imgs.map((img) =>
-        img.complete
-          ? Promise.resolve()
-          : new Promise<void>((resolve) => {
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
-            })
-      )
-    );
+      // Prevent cropping by ensuring fonts & images are loaded.
+      await (document as any).fonts?.ready?.catch(() => undefined);
+      const imgs = Array.from(node.querySelectorAll("img"));
+      await Promise.all(
+        imgs.map((img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              })
+        )
+      );
 
-    const rect = node.getBoundingClientRect();
-    const pad = 16;
-    const width = Math.ceil(rect.width + pad * 2);
-    const height = Math.ceil(rect.height + pad * 2);
+      const rect = node.getBoundingClientRect();
+      const pad = 16;
+      const width = Math.ceil(rect.width + pad * 2);
+      const height = Math.ceil(rect.height + pad * 2);
 
-    const dataUrl = await htmlToImage.toPng(node, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: "transparent",
-      width,
-      height,
-      style: {
-        width: `${Math.ceil(rect.width)}px`,
-        height: `${Math.ceil(rect.height)}px`,
-        margin: "0",
-        transform: `translate(${pad}px, ${pad}px)`,
-        transformOrigin: "top left"
-      }
-    });
+      const dataUrl = await htmlToImage.toPng(node, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "transparent",
+        width,
+        height,
+        style: {
+          width: `${Math.ceil(rect.width)}px`,
+          height: `${Math.ceil(rect.height)}px`,
+          margin: "0",
+          transform: `translate(${pad}px, ${pad}px)`,
+          transformOrigin: "top left"
+        }
+      });
 
-    const link = document.createElement("a");
-    link.download = `${sheet?.name ?? "character"}-skyrim.png`;
-    link.href = dataUrl;
-    link.click();
+      const link = document.createElement("a");
+      link.download = `${sheet?.name ?? "character"}-skyrim.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (e: any) {
+      setErr(e.message ?? "Failed to export PNG");
+    } finally {
+      setExportLoading(false);
+    }
   }
 
   function shuffleArt() {
@@ -250,6 +274,12 @@ export default function HomePageClient({ donationUrl }: Props) {
     }
   }
 
+  function handlePromptChipClick(examplePrompt: string) {
+    setPrompt(examplePrompt);
+    // Trigger generation after a brief moment to ensure state is set
+    setTimeout(() => generate(), 50);
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-neutral-950 via-neutral-950 to-neutral-900 text-neutral-100 px-6 py-10 sm:px-10">
       <div className="mx-auto max-w-6xl">
@@ -289,7 +319,26 @@ export default function HomePageClient({ donationUrl }: Props) {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="text-sm opacity-80 mb-2">Prompt</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm opacity-80">Prompt</div>
+              <div className="text-xs opacity-60">Generate a dossier in one click ✨</div>
+            </div>
+            
+            {/* Example Prompt Chips */}
+            <div className="mb-3 flex flex-wrap gap-2">
+              {EXAMPLE_PROMPTS.map((examplePrompt) => (
+                <button
+                  key={examplePrompt}
+                  onClick={() => handlePromptChipClick(examplePrompt)}
+                  disabled={loading}
+                  className="rounded-full bg-white/10 hover:bg-white/20 border border-white/15 px-3 py-1.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Click to use this prompt and generate"
+                >
+                  {examplePrompt.length > 50 ? examplePrompt.slice(0, 50) + '...' : examplePrompt}
+                </button>
+              ))}
+            </div>
+
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -300,27 +349,29 @@ export default function HomePageClient({ donationUrl }: Props) {
               <button
                 onClick={generate}
                 disabled={loading}
-                className="rounded-xl bg-white text-black px-4 py-2 text-sm font-medium disabled:opacity-50"
+                className="rounded-xl bg-white text-black px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Generating..." : "Generate"}
               </button>
               <button
                 onClick={shuffleArt}
-                className="rounded-xl border border-white/15 px-4 py-2 text-sm"
+                disabled={loading}
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Change the local portrait without regenerating text"
               >
                 Shuffle Art
               </button>
               <button
                 onClick={exportPng}
-                className="rounded-xl border border-white/15 px-4 py-2 text-sm"
+                disabled={exportLoading || loading}
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Export PNG
+                {exportLoading ? "Exporting..." : "Export PNG"}
               </button>
               <button
                 onClick={shareCard}
-                disabled={shareLoading}
-                className="rounded-xl border border-white/15 px-4 py-2 text-sm disabled:opacity-50"
+                disabled={shareLoading || loading}
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Create a shareable link"
               >
                 {shareLoading ? "Creating..." : "Share"}
@@ -366,14 +417,55 @@ export default function HomePageClient({ donationUrl }: Props) {
               </div>
             </div>
 
-            {err && <div className="mt-4 text-sm text-red-300">Error: {err}</div>}
+            {err && (
+              <div className="mt-4 rounded-xl bg-red-500/10 border border-red-500/20 p-3 flex items-start justify-between gap-3">
+                <div className="text-sm text-red-300">
+                  <span className="font-medium">Error:</span> {err}
+                </div>
+                <button
+                  onClick={() => {
+                    setErr(null);
+                    if (err.includes("generate") || err.includes("HTTP")) {
+                      generate();
+                    }
+                  }}
+                  className="rounded-lg bg-red-500/20 hover:bg-red-500/30 px-3 py-1 text-xs text-red-200 transition-colors shrink-0"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
           </div>
 
-          <EditFieldsSection
-            sheet={sheet}
-            setField={setField}
-            setCoreSkill={setCoreSkill}
-          />
+          {/* Collapsible Edit Fields Section */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+            <button
+              onClick={() => setEditFieldsExpanded(!editFieldsExpanded)}
+              className="w-full p-5 flex items-center justify-between hover:bg-white/5 transition-colors"
+            >
+              <div className="text-sm opacity-80">
+                Edit Fields {!hasGeneratedOnce && "(Advanced)"}
+              </div>
+              <svg
+                className={`w-5 h-5 transition-transform ${editFieldsExpanded ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {editFieldsExpanded && (
+              <div className="px-5 pb-5">
+                <EditFieldsSection
+                  sheet={sheet}
+                  setField={setField}
+                  setCoreSkill={setCoreSkill}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Share Modal */}
