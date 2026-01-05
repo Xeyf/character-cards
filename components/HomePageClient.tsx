@@ -29,6 +29,10 @@ const EXAMPLE_PROMPTS = [
 
 const PROMPT_CHIP_MAX_LENGTH = 50;
 
+function truncateText(text: string, maxLength: number): string {
+  return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
+}
+
 const DEFAULT_SHEET = {
   game: "skyrim",
   archetype_id: "sk_redguard_duelist",
@@ -289,8 +293,24 @@ export default function HomePageClient({ donationUrl }: Props) {
     if (loading) return;
     
     setPrompt(examplePrompt);
-    // Trigger generation after a brief moment to ensure state is set
-    setTimeout(() => generate(), 50);
+    // Use requestAnimationFrame to ensure the prompt state update is applied
+    // before triggering generation, which is more reliable than setTimeout
+    requestAnimationFrame(() => {
+      generate();
+    });
+  }
+
+  function retryLastAction() {
+    if (!lastFailedAction) return;
+    
+    setErr(null);
+    if (lastFailedAction === 'generate') {
+      generate();
+    } else if (lastFailedAction === 'share') {
+      shareCard();
+    } else if (lastFailedAction === 'export') {
+      exportPng();
+    }
   }
 
   return (
@@ -347,7 +367,7 @@ export default function HomePageClient({ donationUrl }: Props) {
                   className="rounded-full bg-white/10 hover:bg-white/20 border border-white/15 px-3 py-1.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Click to use this prompt and generate"
                 >
-                  {examplePrompt.length > PROMPT_CHIP_MAX_LENGTH ? examplePrompt.slice(0, PROMPT_CHIP_MAX_LENGTH) + '...' : examplePrompt}
+                  {truncateText(examplePrompt, PROMPT_CHIP_MAX_LENGTH)}
                 </button>
               ))}
             </div>
@@ -437,16 +457,7 @@ export default function HomePageClient({ donationUrl }: Props) {
                 </div>
                 {lastFailedAction && (
                   <button
-                    onClick={() => {
-                      setErr(null);
-                      if (lastFailedAction === 'generate') {
-                        generate();
-                      } else if (lastFailedAction === 'share') {
-                        shareCard();
-                      } else if (lastFailedAction === 'export') {
-                        exportPng();
-                      }
-                    }}
+                    onClick={retryLastAction}
                     className="rounded-lg bg-red-500/20 hover:bg-red-500/30 px-3 py-1 text-xs text-red-200 transition-colors shrink-0"
                   >
                     Retry
