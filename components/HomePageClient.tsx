@@ -8,6 +8,14 @@ import { SKYRIM_ARCHETYPES, SKYRIM_FRAMES, SKYRIM_PORTRAITS } from "@/templates/
 const DEFAULT_PROMPT =
   "A Redguard duelist seeking redemption after betraying his mentor; dark tone; with magic";
 
+const EXAMPLE_PROMPTS = [
+  "A Nord warrior seeking glory in battle",
+  "A cunning Khajiit thief with a heart of gold",
+  "A Breton mage haunted by dark visions",
+  "An Argonian ranger protecting the marsh",
+  "A Dunmer exile seeking revenge"
+];
+
 const DEFAULT_SHEET = {
   game: "skyrim",
   archetype_id: "sk_redguard_duelist",
@@ -68,7 +76,10 @@ export default function HomePageClient({ donationUrl }: Props) {
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [sheet, setSheet] = useState<any>(DEFAULT_SHEET);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [hasGeneratedOnce, setHasGeneratedOnce] = useState(false);
+  const [editFieldsExpanded, setEditFieldsExpanded] = useState(false);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -112,6 +123,10 @@ export default function HomePageClient({ donationUrl }: Props) {
       }
       const data = await res.json();
       setSheet(data.sheet);
+      if (!hasGeneratedOnce) {
+        setHasGeneratedOnce(true);
+        setEditFieldsExpanded(true);
+      }
     } catch (e: any) {
       setErr(e.message ?? "Error");
     } finally {
@@ -122,49 +137,54 @@ export default function HomePageClient({ donationUrl }: Props) {
   async function exportPng() {
     if (!cardRef.current) return;
 
-    // Export the actual card element (the SkyrimDossierCard root), not the preview scaling wrapper.
-    const node = (cardRef.current.querySelector("[data-card-root]") ??
-      cardRef.current.firstElementChild ??
-      cardRef.current) as HTMLElement;
+    setExporting(true);
+    try {
+      // Export the actual card element (the SkyrimDossierCard root), not the preview scaling wrapper.
+      const node = (cardRef.current.querySelector("[data-card-root]") ??
+        cardRef.current.firstElementChild ??
+        cardRef.current) as HTMLElement;
 
-    // Prevent cropping by ensuring fonts & images are loaded.
-    await (document as any).fonts?.ready?.catch(() => undefined);
-    const imgs = Array.from(node.querySelectorAll("img"));
-    await Promise.all(
-      imgs.map((img) =>
-        img.complete
-          ? Promise.resolve()
-          : new Promise<void>((resolve) => {
-              img.onload = () => resolve();
-              img.onerror = () => resolve();
-            })
-      )
-    );
+      // Prevent cropping by ensuring fonts & images are loaded.
+      await (document as any).fonts?.ready?.catch(() => undefined);
+      const imgs = Array.from(node.querySelectorAll("img"));
+      await Promise.all(
+        imgs.map((img) =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              })
+        )
+      );
 
-    const rect = node.getBoundingClientRect();
-    const pad = 16;
-    const width = Math.ceil(rect.width + pad * 2);
-    const height = Math.ceil(rect.height + pad * 2);
+      const rect = node.getBoundingClientRect();
+      const pad = 16;
+      const width = Math.ceil(rect.width + pad * 2);
+      const height = Math.ceil(rect.height + pad * 2);
 
-    const dataUrl = await htmlToImage.toPng(node, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: "transparent",
-      width,
-      height,
-      style: {
-        width: `${Math.ceil(rect.width)}px`,
-        height: `${Math.ceil(rect.height)}px`,
-        margin: "0",
-        transform: `translate(${pad}px, ${pad}px)`,
-        transformOrigin: "top left"
-      }
-    });
+      const dataUrl = await htmlToImage.toPng(node, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "transparent",
+        width,
+        height,
+        style: {
+          width: `${Math.ceil(rect.width)}px`,
+          height: `${Math.ceil(rect.height)}px`,
+          margin: "0",
+          transform: `translate(${pad}px, ${pad}px)`,
+          transformOrigin: "top left"
+        }
+      });
 
-    const link = document.createElement("a");
-    link.download = `${sheet?.name ?? "character"}-skyrim.png`;
-    link.href = dataUrl;
-    link.click();
+      const link = document.createElement("a");
+      link.download = `${sheet?.name ?? "character"}-skyrim.png`;
+      link.href = dataUrl;
+      link.click();
+    } finally {
+      setExporting(false);
+    }
   }
 
   function shuffleArt() {
@@ -183,6 +203,38 @@ export default function HomePageClient({ donationUrl }: Props) {
 
       return { ...prev, portrait_id: nextPortraitId, frame_id: nextFrameId };
     });
+  }
+
+  function handlePromptChipClick(examplePrompt: string) {
+    setPrompt(examplePrompt);
+    // Trigger generation immediately after setting the prompt
+    setLoading(true);
+    setErr(null);
+    fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userInput: examplePrompt })
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j?.error ?? `HTTP ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setSheet(data.sheet);
+        if (!hasGeneratedOnce) {
+          setHasGeneratedOnce(true);
+          setEditFieldsExpanded(true);
+        }
+      })
+      .catch((e: any) => {
+        setErr(e.message ?? "Error");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }
 
   function setField(path: string, value: any) {
@@ -253,6 +305,24 @@ export default function HomePageClient({ donationUrl }: Props) {
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="text-sm opacity-80 mb-2">Prompt</div>
+            <div className="text-xs text-neutral-200/70 mb-3">
+              Generate a dossier in one click — try an example below or write your own prompt
+            </div>
+            
+            {/* Example prompt chips */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {EXAMPLE_PROMPTS.map((examplePrompt, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handlePromptChipClick(examplePrompt)}
+                  disabled={loading || exporting}
+                  className="rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 px-3 py-1.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {examplePrompt}
+                </button>
+              ))}
+            </div>
+
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -262,23 +332,25 @@ export default function HomePageClient({ donationUrl }: Props) {
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
                 onClick={generate}
-                disabled={loading}
-                className="rounded-xl bg-white text-black px-4 py-2 text-sm font-medium disabled:opacity-50"
+                disabled={loading || exporting}
+                className="rounded-xl bg-white text-black px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Generating..." : "Generate"}
               </button>
               <button
                 onClick={shuffleArt}
-                className="rounded-xl border border-white/15 px-4 py-2 text-sm"
+                disabled={loading || exporting}
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Change the local portrait without regenerating text"
               >
                 Shuffle Art
               </button>
               <button
                 onClick={exportPng}
-                className="rounded-xl border border-white/15 px-4 py-2 text-sm"
+                disabled={loading || exporting}
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Export PNG
+                {exporting ? "Exporting..." : "Export PNG"}
               </button>
 
               <div className="ml-auto inline-flex items-center gap-3">
@@ -319,173 +391,196 @@ export default function HomePageClient({ donationUrl }: Props) {
               </div>
             </div>
 
-            {err && <div className="mt-4 text-sm text-red-300">Error: {err}</div>}
+            {err && (
+              <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                <div className="text-sm text-red-300">Error: {err}</div>
+                <button
+                  onClick={generate}
+                  disabled={loading || exporting}
+                  className="mt-2 text-xs text-red-200 hover:text-red-100 underline disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="text-sm opacity-80 mb-3">Edit Fields</div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Name</div>
-                <input
-                  value={sheet?.name ?? ""}
-                  onChange={(e) => setField("name", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Alias</div>
-                <input
-                  value={sheet?.epithet ?? ""}
-                  onChange={(e) => setField("epithet", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Frame</div>
-                <select
-                  value={sheet?.frame_id ?? SKYRIM_FRAMES[0]}
-                  onChange={(e) => setField("frame_id", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                >
-                  {SKYRIM_FRAMES.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Portrait</div>
-                <select
-                  value={sheet?.portrait_id ?? SKYRIM_PORTRAITS[0]}
-                  onChange={(e) => setField("portrait_id", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                >
-                  {SKYRIM_PORTRAITS.map((id) => (
-                    <option key={id} value={id}>
-                      {id}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Combat Role</div>
-                <input
-                  value={sheet?.build?.combat_role ?? ""}
-                  onChange={(e) => setField("build.combat_role", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">Playstyle</div>
-                <textarea
-                  value={sheet?.build?.playstyle ?? ""}
-                  onChange={(e) => setField("build.playstyle", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Core Skill 1</div>
-                <input
-                  value={sheet?.build?.core_skills?.[0] ?? ""}
-                  onChange={(e) => setCoreSkill(0, e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Core Skill 2</div>
-                <input
-                  value={sheet?.build?.core_skills?.[1] ?? ""}
-                  onChange={(e) => setCoreSkill(1, e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">Core Skill 3</div>
-                <input
-                  value={sheet?.build?.core_skills?.[2] ?? ""}
-                  onChange={(e) => setCoreSkill(2, e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">Background</div>
-                <textarea
-                  value={sheet?.backstory ?? ""}
-                  onChange={(e) => setField("backstory", e.target.value)}
-                  className="w-full h-28 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">History (path forward)</div>
-                <textarea
-                  value={sheet?.history ?? ""}
-                  onChange={(e) => setField("history", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Oath</div>
-                <textarea
-                  value={sheet?.oath ?? ""}
-                  onChange={(e) => setField("oath", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Flaw</div>
-                <textarea
-                  value={sheet?.flaw ?? ""}
-                  onChange={(e) => setField("flaw", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Allies (one per line)</div>
-                <textarea
-                  value={arrayToLines(sheet?.allies)}
-                  onChange={(e) => setField("allies", linesToArray(e.target.value))}
-                  className="w-full h-24 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Enemies (one per line)</div>
-                <textarea
-                  value={arrayToLines(sheet?.enemies)}
-                  onChange={(e) => setField("enemies", linesToArray(e.target.value))}
-                  className="w-full h-24 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">Epic Final Phrase</div>
-                <textarea
-                  value={sheet?.quote ?? ""}
-                  onChange={(e) => setField("quote", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm opacity-80">Edit Fields</div>
+              <button
+                onClick={() => setEditFieldsExpanded(!editFieldsExpanded)}
+                className="text-xs text-neutral-200/70 hover:text-neutral-100 transition-colors"
+              >
+                {editFieldsExpanded ? "Collapse ▲" : "Expand ▼"}
+              </button>
             </div>
 
-            <div className="mt-4 text-xs opacity-70">
-              Changes here are local-only and will reflect immediately in the preview and PNG export.
-            </div>
+            {editFieldsExpanded && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Name</div>
+                    <input
+                      value={sheet?.name ?? ""}
+                      onChange={(e) => setField("name", e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Alias</div>
+                    <input
+                      value={sheet?.epithet ?? ""}
+                      onChange={(e) => setField("epithet", e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Frame</div>
+                    <select
+                      value={sheet?.frame_id ?? SKYRIM_FRAMES[0]}
+                      onChange={(e) => setField("frame_id", e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    >
+                      {SKYRIM_FRAMES.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Portrait</div>
+                    <select
+                      value={sheet?.portrait_id ?? SKYRIM_PORTRAITS[0]}
+                      onChange={(e) => setField("portrait_id", e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    >
+                      {SKYRIM_PORTRAITS.map((id) => (
+                        <option key={id} value={id}>
+                          {id}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Combat Role</div>
+                    <input
+                      value={sheet?.build?.combat_role ?? ""}
+                      onChange={(e) => setField("build.combat_role", e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm md:col-span-2">
+                    <div className="mb-1 opacity-70">Playstyle</div>
+                    <textarea
+                      value={sheet?.build?.playstyle ?? ""}
+                      onChange={(e) => setField("build.playstyle", e.target.value)}
+                      className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Core Skill 1</div>
+                    <input
+                      value={sheet?.build?.core_skills?.[0] ?? ""}
+                      onChange={(e) => setCoreSkill(0, e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Core Skill 2</div>
+                    <input
+                      value={sheet?.build?.core_skills?.[1] ?? ""}
+                      onChange={(e) => setCoreSkill(1, e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm md:col-span-2">
+                    <div className="mb-1 opacity-70">Core Skill 3</div>
+                    <input
+                      value={sheet?.build?.core_skills?.[2] ?? ""}
+                      onChange={(e) => setCoreSkill(2, e.target.value)}
+                      className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm md:col-span-2">
+                    <div className="mb-1 opacity-70">Background</div>
+                    <textarea
+                      value={sheet?.backstory ?? ""}
+                      onChange={(e) => setField("backstory", e.target.value)}
+                      className="w-full h-28 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm md:col-span-2">
+                    <div className="mb-1 opacity-70">History (path forward)</div>
+                    <textarea
+                      value={sheet?.history ?? ""}
+                      onChange={(e) => setField("history", e.target.value)}
+                      className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Oath</div>
+                    <textarea
+                      value={sheet?.oath ?? ""}
+                      onChange={(e) => setField("oath", e.target.value)}
+                      className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Flaw</div>
+                    <textarea
+                      value={sheet?.flaw ?? ""}
+                      onChange={(e) => setField("flaw", e.target.value)}
+                      className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Allies (one per line)</div>
+                    <textarea
+                      value={arrayToLines(sheet?.allies)}
+                      onChange={(e) => setField("allies", linesToArray(e.target.value))}
+                      className="w-full h-24 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm">
+                    <div className="mb-1 opacity-70">Enemies (one per line)</div>
+                    <textarea
+                      value={arrayToLines(sheet?.enemies)}
+                      onChange={(e) => setField("enemies", linesToArray(e.target.value))}
+                      className="w-full h-24 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+
+                  <label className="text-sm md:col-span-2">
+                    <div className="mb-1 opacity-70">Epic Final Phrase</div>
+                    <textarea
+                      value={sheet?.quote ?? ""}
+                      onChange={(e) => setField("quote", e.target.value)}
+                      className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-4 text-xs opacity-70">
+                  Changes here are local-only and will reflect immediately in the preview and PNG export.
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
