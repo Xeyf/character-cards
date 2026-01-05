@@ -1,0 +1,24 @@
+export type Sheet = {
+  game: "skyrim";
+  archetype_id: string;
+  frame_id: string;
+  portrait_id: string;
+  name: string;
+  epithet: string;
+  race: string;
+  origin: string;
+  hook: string;
+  backstory: string;
+  history: string;
+  build: { playstyle: string; combat_role: string; core_skills: string[] };
+  stats: { might: number; guile: number; arcana: number; grit: number; presence: number };
+  traits: string[];
+  bond: string;
+  nemesis: string;
+  allies: string[];
+  enemies: string[];
+  flaw: string;
+  oath: string;
+  signature_item: string;
+  quote: string;
+};
