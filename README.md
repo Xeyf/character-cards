@@ -6,6 +6,7 @@ A small Next.js app for generating *dossier-style* RPG character sheets (current
 - The app generates a **structured character sheet** via the `/api/generate` route (OpenAI)
 - Preview the card instantly
 - Export a crisp **PNG** (powered by `html-to-image`) for sharing
+- **Share your character** via a persistent link with rich OpenGraph previews for Discord/Twitter
 
 This repo is intentionally approachable: it’s a fun place to collaborate on **functionality, templates, art, and ideas**.
 
@@ -33,11 +34,15 @@ Create a `.env.local` in the project root:
 OPENAI_API_KEY=your_key_here
 # optional
 DONATION_URL=https://...
+# optional (for persistent shareable links in production)
+KV_REST_API_URL=your_vercel_kv_url
+KV_REST_API_TOKEN=your_vercel_kv_token
 ```
 
 Notes:
 - `OPENAI_API_KEY` is required for `/api/generate`.
 - `DONATION_URL` is optional (the UI reads it from `process.env.DONATION_URL`).
+- `KV_REST_API_URL` and `KV_REST_API_TOKEN` are optional. If not provided, shareable links will use in-memory storage (which won't persist across deployments). For production, set up Vercel KV in your Vercel project dashboard.
 
 ### 3) Run
 
