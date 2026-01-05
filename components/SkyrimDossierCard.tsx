@@ -31,6 +31,7 @@ export default function SkyrimDossierCard({ sheet }: { sheet: Sheet }) {
 
   return (
     <div
+      data-card-root
       className="relative w-[720px] max-w-full aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl border border-black/20"
     >
       {/* frame overlay */}
