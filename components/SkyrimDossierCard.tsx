@@ -1,29 +1,6 @@
 import React from "react";
-
-type Sheet = {
-  game: "skyrim";
-  archetype_id: string;
-  frame_id: string;
-  portrait_id: string;
-  name: string;
-  epithet: string;
-  race: string;
-  origin: string;
-  hook: string;
-  backstory: string;
-  history: string;
-  build: { playstyle: string; combat_role: string; core_skills: string[] };
-  stats: { might: number; guile: number; arcana: number; grit: number; presence: number };
-  traits: string[];
-  bond: string;
-  nemesis: string;
-  allies: string[];
-  enemies: string[];
-  flaw: string;
-  oath: string;
-  signature_item: string;
-  quote: string;
-};
+import Image from "next/image";
+import type { Sheet } from "@/types/sheet";
 
 export default function SkyrimDossierCard({ sheet }: { sheet: Sheet }) {
   const portraitSrc = `/assets/skyrim/portraits/${sheet.portrait_id}`;
@@ -35,11 +12,14 @@ export default function SkyrimDossierCard({ sheet }: { sheet: Sheet }) {
       className="relative w-[720px] max-w-full aspect-[9/16] rounded-2xl overflow-hidden shadow-2xl border border-black/20"
     >
       {/* frame overlay */}
-      <img
+      <Image
         src={frame}
         alt="decorative frame"
-        className="pointer-events-none absolute inset-0 h-full w-full opacity-100"
+        fill
+        priority
+        className="pointer-events-none opacity-100"
         draggable={false}
+        sizes="720px"
       />
 
       {/* safe content area (keeps text inside the frame) */}
@@ -58,13 +38,16 @@ export default function SkyrimDossierCard({ sheet }: { sheet: Sheet }) {
           <div className="mt-10 rounded-xl border border-black/15 bg-transparent p-4 pb-24">
             <div className="grid grid-cols-12 gap-4">
               <div className="col-span-5">
-                <div className="aspect-[4/5] w-full overflow-hidden rounded-lg border border-black/15 bg-transparent">
-                  <img
+                <div className="aspect-[4/5] w-full overflow-hidden rounded-lg border border-black/15 bg-transparent relative">
+                  <Image
                     src={portraitSrc}
                     alt={sheet.portrait_id}
-                    className="h-full w-full object-cover"
+                    fill
+                    priority
+                    className="object-cover"
                     draggable={false}
-                    decoding="async"
+                    // Portrait is 5/12 of 560px content area ≈ 233px, but we use 224px for efficiency
+                    sizes="(max-width: 720px) 40vw, 224px"
                   />
                 </div>
 

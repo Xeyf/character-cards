@@ -1,9 +1,20 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import dynamic from "next/dynamic";
 import SkyrimDossierCard from "@/components/SkyrimDossierCard";
-import * as htmlToImage from "html-to-image";
 import { SKYRIM_FRAMES, SKYRIM_PORTRAITS } from "@/templates/skyrim";
+
+// Lazy load the edit fields section (below the fold)
+const EditFieldsSection = dynamic(() => import("@/components/EditFieldsSection"), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 h-32 flex items-center justify-center">
+      <div className="text-sm opacity-70">Loading editor...</div>
+    </div>
+  ),
+});
 
 const DEFAULT_PROMPT =
   "A Redguard duelist seeking redemption after betraying his mentor; dark tone; with magic";
@@ -48,17 +59,6 @@ const DEFAULT_SHEET = {
   signature_item: "A nicked Redguard saber with a black leather hilt",
   quote: "Steel remembers what men try to forget."
 };
-
-function linesToArray(text: string) {
-  return text
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-function arrayToLines(arr: unknown) {
-  return Array.isArray(arr) ? arr.join("\n") : "";
-}
 
 type Props = {
   donationUrl?: string;
@@ -124,6 +124,9 @@ export default function HomePageClient({ donationUrl }: Props) {
 
   async function exportPng() {
     if (!cardRef.current) return;
+
+    // Lazy load html-to-image only when export is triggered
+    const htmlToImage = await import("html-to-image");
 
     // Export the actual card element (the SkyrimDossierCard root), not the preview scaling wrapper.
     const node = (cardRef.current.querySelector("[data-card-root]") ??
@@ -350,9 +353,11 @@ export default function HomePageClient({ donationUrl }: Props) {
                     className="inline-flex"
                     title="Donate"
                   >
-                    <img
+                    <Image
                       src="/assets/skyrim/donate_button.png"
                       alt="Donate"
+                      width={80}
+                      height={80}
                       className="h-20 w-auto"
                       draggable={false}
                     />
@@ -364,171 +369,11 @@ export default function HomePageClient({ donationUrl }: Props) {
             {err && <div className="mt-4 text-sm text-red-300">Error: {err}</div>}
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="text-sm opacity-80 mb-3">Edit Fields</div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Name</div>
-                <input
-                  value={sheet?.name ?? ""}
-                  onChange={(e) => setField("name", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Alias</div>
-                <input
-                  value={sheet?.epithet ?? ""}
-                  onChange={(e) => setField("epithet", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Frame</div>
-                <select
-                  value={sheet?.frame_id ?? SKYRIM_FRAMES[0]}
-                  onChange={(e) => setField("frame_id", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                >
-                  {SKYRIM_FRAMES.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Portrait</div>
-                <select
-                  value={sheet?.portrait_id ?? SKYRIM_PORTRAITS[0]}
-                  onChange={(e) => setField("portrait_id", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                >
-                  {SKYRIM_PORTRAITS.map((id) => (
-                    <option key={id} value={id}>
-                      {id}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Combat Role</div>
-                <input
-                  value={sheet?.build?.combat_role ?? ""}
-                  onChange={(e) => setField("build.combat_role", e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">Playstyle</div>
-                <textarea
-                  value={sheet?.build?.playstyle ?? ""}
-                  onChange={(e) => setField("build.playstyle", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Core Skill 1</div>
-                <input
-                  value={sheet?.build?.core_skills?.[0] ?? ""}
-                  onChange={(e) => setCoreSkill(0, e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Core Skill 2</div>
-                <input
-                  value={sheet?.build?.core_skills?.[1] ?? ""}
-                  onChange={(e) => setCoreSkill(1, e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">Core Skill 3</div>
-                <input
-                  value={sheet?.build?.core_skills?.[2] ?? ""}
-                  onChange={(e) => setCoreSkill(2, e.target.value)}
-                  className="w-full rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">Background</div>
-                <textarea
-                  value={sheet?.backstory ?? ""}
-                  onChange={(e) => setField("backstory", e.target.value)}
-                  className="w-full h-28 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">History (path forward)</div>
-                <textarea
-                  value={sheet?.history ?? ""}
-                  onChange={(e) => setField("history", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Oath</div>
-                <textarea
-                  value={sheet?.oath ?? ""}
-                  onChange={(e) => setField("oath", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Flaw</div>
-                <textarea
-                  value={sheet?.flaw ?? ""}
-                  onChange={(e) => setField("flaw", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Allies (one per line)</div>
-                <textarea
-                  value={arrayToLines(sheet?.allies)}
-                  onChange={(e) => setField("allies", linesToArray(e.target.value))}
-                  className="w-full h-24 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm">
-                <div className="mb-1 opacity-70">Enemies (one per line)</div>
-                <textarea
-                  value={arrayToLines(sheet?.enemies)}
-                  onChange={(e) => setField("enemies", linesToArray(e.target.value))}
-                  className="w-full h-24 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-
-              <label className="text-sm md:col-span-2">
-                <div className="mb-1 opacity-70">Epic Final Phrase</div>
-                <textarea
-                  value={sheet?.quote ?? ""}
-                  onChange={(e) => setField("quote", e.target.value)}
-                  className="w-full h-20 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
-                />
-              </label>
-            </div>
-
-            <div className="mt-4 text-xs opacity-70">
-              Changes here are local-only and will reflect immediately in the preview and PNG export.
-            </div>
-          </div>
+          <EditFieldsSection
+            sheet={sheet}
+            setField={setField}
+            setCoreSkill={setCoreSkill}
+          />
         </div>
 
         {/* Share Modal */}
