@@ -108,14 +108,14 @@ export default function HomePageClient({ donationUrl }: Props) {
     return () => ro.disconnect();
   }, []);
 
-  async function generate() {
+  async function generateWithPrompt(promptText: string) {
     setLoading(true);
     setErr(null);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userInput: prompt })
+        body: JSON.stringify({ userInput: promptText })
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -132,6 +132,15 @@ export default function HomePageClient({ donationUrl }: Props) {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function generate() {
+    await generateWithPrompt(prompt);
+  }
+
+  async function handlePromptChipClick(examplePrompt: string) {
+    setPrompt(examplePrompt);
+    await generateWithPrompt(examplePrompt);
   }
 
   async function exportPng() {
@@ -203,38 +212,6 @@ export default function HomePageClient({ donationUrl }: Props) {
 
       return { ...prev, portrait_id: nextPortraitId, frame_id: nextFrameId };
     });
-  }
-
-  function handlePromptChipClick(examplePrompt: string) {
-    setPrompt(examplePrompt);
-    // Trigger generation immediately after setting the prompt
-    setLoading(true);
-    setErr(null);
-    fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userInput: examplePrompt })
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          throw new Error(j?.error ?? `HTTP ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setSheet(data.sheet);
-        if (!hasGeneratedOnce) {
-          setHasGeneratedOnce(true);
-          setEditFieldsExpanded(true);
-        }
-      })
-      .catch((e: any) => {
-        setErr(e.message ?? "Error");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
   }
 
   function setField(path: string, value: any) {
