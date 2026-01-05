@@ -27,6 +27,8 @@ const EXAMPLE_PROMPTS = [
   "A Dark Elf assassin seeking redemption",
 ];
 
+const PROMPT_CHIP_MAX_LENGTH = 50;
+
 const DEFAULT_SHEET = {
   game: "skyrim",
   archetype_id: "sk_redguard_duelist",
@@ -78,6 +80,7 @@ export default function HomePageClient({ donationUrl }: Props) {
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [lastFailedAction, setLastFailedAction] = useState<'generate' | 'share' | 'export' | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -114,6 +117,7 @@ export default function HomePageClient({ donationUrl }: Props) {
   async function generate() {
     setLoading(true);
     setErr(null);
+    setLastFailedAction(null);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -134,6 +138,7 @@ export default function HomePageClient({ donationUrl }: Props) {
       }
     } catch (e: any) {
       setErr(e.message ?? "Error");
+      setLastFailedAction('generate');
     } finally {
       setLoading(false);
     }
@@ -143,6 +148,8 @@ export default function HomePageClient({ donationUrl }: Props) {
     if (!cardRef.current) return;
 
     setExportLoading(true);
+    setErr(null);
+    setLastFailedAction(null);
     try {
       // Lazy load html-to-image only when export is triggered
       const htmlToImage = await import("html-to-image");
@@ -192,6 +199,7 @@ export default function HomePageClient({ donationUrl }: Props) {
       link.click();
     } catch (e: any) {
       setErr(e.message ?? "Failed to export PNG");
+      setLastFailedAction('export');
     } finally {
       setExportLoading(false);
     }
@@ -246,6 +254,7 @@ export default function HomePageClient({ donationUrl }: Props) {
   async function shareCard() {
     setShareLoading(true);
     setErr(null);
+    setLastFailedAction(null);
     try {
       const res = await fetch("/api/share", {
         method: "POST",
@@ -263,6 +272,7 @@ export default function HomePageClient({ donationUrl }: Props) {
       setShowShareModal(true);
     } catch (e: any) {
       setErr(e.message ?? "Failed to create share link");
+      setLastFailedAction('share');
     } finally {
       setShareLoading(false);
     }
@@ -275,6 +285,9 @@ export default function HomePageClient({ donationUrl }: Props) {
   }
 
   function handlePromptChipClick(examplePrompt: string) {
+    // Prevent multiple simultaneous generations
+    if (loading) return;
+    
     setPrompt(examplePrompt);
     // Trigger generation after a brief moment to ensure state is set
     setTimeout(() => generate(), 50);
@@ -334,7 +347,7 @@ export default function HomePageClient({ donationUrl }: Props) {
                   className="rounded-full bg-white/10 hover:bg-white/20 border border-white/15 px-3 py-1.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   title="Click to use this prompt and generate"
                 >
-                  {examplePrompt.length > 50 ? examplePrompt.slice(0, 50) + '...' : examplePrompt}
+                  {examplePrompt.length > PROMPT_CHIP_MAX_LENGTH ? examplePrompt.slice(0, PROMPT_CHIP_MAX_LENGTH) + '...' : examplePrompt}
                 </button>
               ))}
             </div>
@@ -422,17 +435,23 @@ export default function HomePageClient({ donationUrl }: Props) {
                 <div className="text-sm text-red-300">
                   <span className="font-medium">Error:</span> {err}
                 </div>
-                <button
-                  onClick={() => {
-                    setErr(null);
-                    if (err.includes("generate") || err.includes("HTTP")) {
-                      generate();
-                    }
-                  }}
-                  className="rounded-lg bg-red-500/20 hover:bg-red-500/30 px-3 py-1 text-xs text-red-200 transition-colors shrink-0"
-                >
-                  Retry
-                </button>
+                {lastFailedAction && (
+                  <button
+                    onClick={() => {
+                      setErr(null);
+                      if (lastFailedAction === 'generate') {
+                        generate();
+                      } else if (lastFailedAction === 'share') {
+                        shareCard();
+                      } else if (lastFailedAction === 'export') {
+                        exportPng();
+                      }
+                    }}
+                    className="rounded-lg bg-red-500/20 hover:bg-red-500/30 px-3 py-1 text-xs text-red-200 transition-colors shrink-0"
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
             )}
           </div>
