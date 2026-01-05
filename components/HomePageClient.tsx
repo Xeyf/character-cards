@@ -231,24 +231,21 @@ export default function HomePageClient({ donationUrl }: Props) {
         </header>
 
         <div className="mt-8 grid grid-cols-1 gap-6">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <div className="text-sm opacity-80 mb-3">Preview</div>
-            <div className="w-full overflow-hidden">
+          <div className="w-full overflow-hidden">
+            <div
+              ref={previewRef}
+              className="relative w-full h-[75vh] max-h-[820px] flex items-center justify-center"
+            >
               <div
-                ref={previewRef}
-                className="relative w-full h-[75vh] max-h-[820px] flex items-center justify-center"
+                className="relative"
+                style={{ width: `${720 * previewScale}px`, height: `${1280 * previewScale}px` }}
               >
                 <div
-                  className="relative"
-                  style={{ width: `${720 * previewScale}px`, height: `${1280 * previewScale}px` }}
+                  ref={cardRef}
+                  className="absolute left-0 top-0 w-fit"
+                  style={{ transform: `scale(${previewScale})`, transformOrigin: "top left" }}
                 >
-                  <div
-                    ref={cardRef}
-                    className="absolute left-0 top-0 w-fit"
-                    style={{ transform: `scale(${previewScale})`, transformOrigin: "top left" }}
-                  >
-                    <SkyrimDossierCard sheet={sheet} />
-                  </div>
+                  <SkyrimDossierCard sheet={sheet} />
                 </div>
               </div>
             </div>
