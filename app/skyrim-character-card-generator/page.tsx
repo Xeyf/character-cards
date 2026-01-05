@@ -165,7 +165,7 @@ export default function SkyrimCharacterCardGeneratorPage() {
         {/* CTA Button */}
         <div className="mt-12 flex justify-center">
           <Link
-            href="/#generator"
+            href="/"
             className="rounded-lg bg-foreground px-8 py-4 text-lg font-semibold text-background hover:opacity-90 transition-opacity"
           >
             Create Your Character Card →
@@ -209,7 +209,7 @@ export default function SkyrimCharacterCardGeneratorPage() {
 
         <div className="mt-12 text-center">
           <Link
-            href="/#generator"
+            href="/"
             className="inline-block rounded-lg border-2 border-foreground/20 px-6 py-3 font-semibold hover:border-foreground/40 transition-colors"
           >
             Generate Your Own →
@@ -258,14 +258,9 @@ export default function SkyrimCharacterCardGeneratorPage() {
       {/* Internal Links */}
       <section className="mx-auto max-w-4xl px-6 py-8 text-center text-sm opacity-70">
         <p>
-          Explore more:{" "}
           <Link href="/" className="underline hover:opacity-100">
             Home
           </Link>
-          {" · "}
-          Character Templates
-          {" · "}
-          RPG Resources
         </p>
       </section>
     </div>
