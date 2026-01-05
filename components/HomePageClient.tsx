@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import SkyrimDossierCard from "@/components/SkyrimDossierCard";
 import * as htmlToImage from "html-to-image";
 import { SKYRIM_ARCHETYPES, SKYRIM_FRAMES, SKYRIM_PORTRAITS } from "@/templates/skyrim";
@@ -71,6 +71,31 @@ export default function HomePageClient({ donationUrl }: Props) {
   const [err, setErr] = useState<string | null>(null);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const [previewScale, setPreviewScale] = useState(1);
+
+  useEffect(() => {
+    const el = previewRef.current;
+    if (!el) return;
+
+    // Natural card size: 720px wide with 9/16 aspect ratio.
+    const CARD_W = 720;
+    const CARD_H = 1280;
+
+    function recompute() {
+      const target = previewRef.current;
+      if (!target) return;
+      const { clientWidth, clientHeight } = target;
+      if (!clientWidth || !clientHeight) return;
+      const s = Math.min(clientWidth / CARD_W, clientHeight / CARD_H, 1);
+      setPreviewScale(Number.isFinite(s) && s > 0 ? s : 1);
+    }
+
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   async function generate() {
     setLoading(true);
@@ -97,8 +122,10 @@ export default function HomePageClient({ donationUrl }: Props) {
   async function exportPng() {
     if (!cardRef.current) return;
 
-    // Export the actual card element (the SkyrimDossierCard root), not the sizing wrapper.
-    const node = (cardRef.current.firstElementChild ?? cardRef.current) as HTMLElement;
+    // Export the actual card element (the SkyrimDossierCard root), not the preview scaling wrapper.
+    const node = (cardRef.current.querySelector("[data-card-root]") ??
+      cardRef.current.firstElementChild ??
+      cardRef.current) as HTMLElement;
 
     // Prevent cropping by ensuring fonts & images are loaded.
     await (document as any).fonts?.ready?.catch(() => undefined);
@@ -206,9 +233,23 @@ export default function HomePageClient({ donationUrl }: Props) {
         <div className="mt-8 grid grid-cols-1 gap-6">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="text-sm opacity-80 mb-3">Preview</div>
-            <div className="w-full overflow-auto">
-              <div ref={cardRef} className="mx-auto w-fit">
-                <SkyrimDossierCard sheet={sheet} />
+            <div className="w-full overflow-hidden">
+              <div
+                ref={previewRef}
+                className="relative w-full h-[75vh] max-h-[820px] flex items-center justify-center"
+              >
+                <div
+                  className="relative"
+                  style={{ width: `${720 * previewScale}px`, height: `${1280 * previewScale}px` }}
+                >
+                  <div
+                    ref={cardRef}
+                    className="absolute left-0 top-0 w-fit"
+                    style={{ transform: `scale(${previewScale})`, transformOrigin: "top left" }}
+                  >
+                    <SkyrimDossierCard sheet={sheet} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
