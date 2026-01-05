@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import SkyrimDossierCard from "@/components/SkyrimDossierCard";
 import * as htmlToImage from "html-to-image";
-import { SKYRIM_ARCHETYPES, SKYRIM_FRAMES, SKYRIM_PORTRAITS } from "@/templates/skyrim";
+import { SKYRIM_FRAMES, SKYRIM_PORTRAITS } from "@/templates/skyrim";
 
 const DEFAULT_PROMPT =
   "A Redguard duelist seeking redemption after betraying his mentor; dark tone; with magic";
@@ -69,6 +69,9 @@ export default function HomePageClient({ donationUrl }: Props) {
   const [sheet, setSheet] = useState<any>(DEFAULT_SHEET);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const cardRef = useRef<HTMLDivElement | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -213,6 +216,37 @@ export default function HomePageClient({ donationUrl }: Props) {
     });
   }
 
+  async function shareCard() {
+    setShareLoading(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sheet, prompt })
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error ?? `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const baseUrl = window.location.origin;
+      const url = `${baseUrl}/c/${data.id}`;
+      setShareUrl(url);
+      setShowShareModal(true);
+    } catch (e: any) {
+      setErr(e.message ?? "Failed to create share link");
+    } finally {
+      setShareLoading(false);
+    }
+  }
+
+  function copyShareUrl() {
+    if (shareUrl) {
+      navigator.clipboard.writeText(shareUrl);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-neutral-950 via-neutral-950 to-neutral-900 text-neutral-100 px-6 py-10 sm:px-10">
       <div className="mx-auto max-w-6xl">
@@ -279,6 +313,14 @@ export default function HomePageClient({ donationUrl }: Props) {
                 className="rounded-xl border border-white/15 px-4 py-2 text-sm"
               >
                 Export PNG
+              </button>
+              <button
+                onClick={shareCard}
+                disabled={shareLoading}
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm disabled:opacity-50"
+                title="Create a shareable link"
+              >
+                {shareLoading ? "Creating..." : "Share"}
               </button>
 
               <div className="ml-auto inline-flex items-center gap-3">
@@ -488,6 +530,47 @@ export default function HomePageClient({ donationUrl }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Share Modal */}
+        {showShareModal && shareUrl && (
+          <div
+            className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50"
+            onClick={() => setShowShareModal(false)}
+          >
+            <div
+              className="bg-neutral-900 border border-white/10 rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-semibold mb-4">Share Your Card</h3>
+              <p className="text-sm text-neutral-400 mb-4">
+                Your card has been saved! Share this link with others:
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={shareUrl}
+                  readOnly
+                  className="flex-1 rounded-xl bg-black/40 border border-white/10 p-3 text-sm outline-none"
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
+                />
+                <button
+                  onClick={copyShareUrl}
+                  className="rounded-xl bg-white text-black px-4 py-2 text-sm font-medium"
+                >
+                  Copy
+                </button>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="rounded-xl border border-white/15 px-4 py-2 text-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
