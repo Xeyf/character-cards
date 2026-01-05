@@ -16,13 +16,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://skyrim.cards"),
   title: {
-    default: "Skyrim Cards",
+    default: "Skyrim Dossier Cards - Character Card Generator",
     template: "%s | Skyrim Cards",
   },
   description:
-    "Create Skyrim-style character dossier cards and export beautiful images to share.",
-  applicationName: "Skyrim Cards",
+    "Generate Skyrim-style character dossier cards with AI. Create detailed RPG character sheets and export beautiful images for your Elder Scrolls adventures. Not playing cards - character profile generators.",
+  applicationName: "Skyrim Dossier Cards",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -32,23 +33,33 @@ export const metadata: Metadata = {
     apple: [{ url: "/assets/skyrim/favicon.png", type: "image/png" }],
   },
   keywords: [
-    "Skyrim cards",
-    "Skyrim character card",
+    "Skyrim character generator",
+    "Skyrim dossier cards",
+    "Skyrim character card generator",
     "Skyrim character sheet",
+    "Elder Scrolls character creator",
     "RPG character card",
-    "character dossier",
+    "character dossier generator",
+    "Skyrim character profile",
+    "AI character generator",
   ],
   openGraph: {
     type: "website",
-    title: "Skyrim Cards",
+    url: "https://skyrim.cards/",
+    siteName: "Skyrim Dossier Cards",
+    title: "Skyrim Dossier Cards - Character Card Generator",
     description:
-      "Create Skyrim-style character dossier cards and export beautiful images to share.",
+      "Generate Skyrim-style character dossier cards with AI. Create detailed RPG character sheets and export beautiful images for your Elder Scrolls adventures.",
+    locale: "en_US",
   },
   twitter: {
-    card: "summary",
-    title: "Skyrim Cards",
+    card: "summary_large_image",
+    title: "Skyrim Dossier Cards - Character Card Generator",
     description:
-      "Create Skyrim-style character dossier cards and export beautiful images to share.",
+      "Generate Skyrim-style character dossier cards with AI. Create detailed RPG character sheets and export beautiful images.",
+  },
+  alternates: {
+    canonical: "https://skyrim.cards/",
   },
 };
 
