@@ -17,36 +17,38 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Skyrim Character Card Generator | Create Dossier-Style RPG Sheets",
-    template: "%s | Skyrim Character Card Generator",
+    default: "Skyrim Cards",
+    template: "%s | Skyrim Cards",
   },
   description:
-    "Generate dossier-style Skyrim RPG character cards from a prompt using structured JSON outputs, then export a crisp PNG for sharing.",
-  applicationName: "Character Cards",
+    "Create Skyrim-style character dossier cards and export beautiful images to share.",
+  applicationName: "Skyrim Cards",
   icons: {
-    icon: [{ url: "/favicon.png", type: "image/png" }],
-    shortcut: ["/favicon.png"],
-    apple: [{ url: "/favicon.png", type: "image/png" }],
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/assets/skyrim/favicon.png", type: "image/png" },
+    ],
+    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/assets/skyrim/favicon.png", type: "image/png" }],
   },
   keywords: [
-    "Skyrim character card generator",
-    "RPG character sheet",
-    "dossier character sheet",
-    "character card",
-    "PNG export",
-    "OpenAI structured outputs",
+    "Skyrim cards",
+    "Skyrim character card",
+    "Skyrim character sheet",
+    "RPG character card",
+    "character dossier",
   ],
   openGraph: {
     type: "website",
-    title: "Skyrim Character Card Generator",
+    title: "Skyrim Cards",
     description:
-      "Create dossier-style Skyrim RPG character cards from a prompt and export them to PNG.",
+      "Create Skyrim-style character dossier cards and export beautiful images to share.",
   },
   twitter: {
     card: "summary",
-    title: "Skyrim Character Card Generator",
+    title: "Skyrim Cards",
     description:
-      "Create dossier-style Skyrim RPG character cards from a prompt and export them to PNG.",
+      "Create Skyrim-style character dossier cards and export beautiful images to share.",
   },
 };
 
